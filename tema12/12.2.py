@@ -39,6 +39,11 @@ class ЕlephantAndBee:
 
 
 
+
+
 a = ЕlephantAndBee(9, 12)
 print(a.trumpet())
+
+
 print(a.eat(56,98), )
+
