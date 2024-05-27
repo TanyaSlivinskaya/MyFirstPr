@@ -1,23 +1,71 @@
-"""Задача 1: Создание и заполнение таблиц
-● Создайте таблицу authors с полями id, first_name и last_name.Используйте PRIMARY KEY для поля id
-● Создайте таблицу books с полями id, title, author_id и publication_year. Используйте PRIMARY KEY для поля id и FOREIGN KEY для поля author_id, ссылаясь на таблицу authors
-● Создайте таблицу sales с полями id, book_id и quantity. Используйте PRIMARY KEY для поля id и FOREIGN KEY для поля book_id, ссылаясь на таблицу books
-● Добавьте несколько авторов в таблицу authors
-● Добавьте несколько книг в таблицу books, указывая авторов из таблицы authors
-● Добавьте записи о продажах книг в таблицу sales
-Задача 2: Использование JOIN
-● Используйте INNER JOIN для получения списка всех книг и их авторов.
-● Используйте LEFT JOIN для получения списка всех авторов и их книг (включая авторов, у которых нет книг).
-● Используйте RIGHT JOIN для получения списка всех книг и их авторов, включая книги, у которых автор не указан
-Задача 3: Множественные JOIN ● Используйте INNER JOIN для связывания таблиц authors,
-books и sales, чтобы получить список всех книг, их авторов и продаж
-● Используйте LEFT JOIN для связывания таблиц authors, books и sales, чтобы получить список всех авторов, их книг и продаж (включая авторов без книг и книги без продаж)
-Задача 4: Агрегация данных с использованием JOIN ● Используйте INNER JOIN и функции агрегации для определения общего количества проданных книг каждого автора
-● Используйте LEFT JOIN и функции агрегации для определения общего количества проданных книг каждого автора, включая авторов без продаж
-Задача 5: Подзапросы и JOIN ● Найдите автора с наибольшим количеством проданных книг, используя подзапросы и JOIN
-● Найдите книги, которые были проданы в количестве, превышающем среднее количество продаж всех книг, используя подзапросы и JOIN"""
+import sqlite3
+from datetime import datetime
 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey,
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+def insert_events(cursor, events_data):
+    cursor.executemany("INSERT INTO events (name, date, venue_id) VALUES (?, ?, ?)", events_data)
 
+def insert_tickets(cursor, event_id, tickets_data):
+    for ticket_data in tickets_data:
+        cursor.execute("INSERT INTO tickets (event_id, price) VALUES (?, ?)", (event_id, ticket_data))
+
+def insert_venues(cursor, venues_data):
+    for venue_data in venues_data:
+        cursor.execute("INSERT INTO venues (name, address, capacity) VALUES (?, ?, ?)", venue_data)
+
+connection = sqlite3.connect('tickets.db')
+cursor = connection.cursor()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        date DATE NOT NULL,
+        venue_id INTEGER, 
+        FOREIGN KEY (venue_id) REFERENCES venues(id) 
+    )
+""")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS venues (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        address TEXT,
+        capacity INTEGER
+    )
+""")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tickets (
+        id INTEGER PRIMARY KEY,
+        event_id INTEGER,
+        price REAL,
+        FOREIGN KEY (event_id) REFERENCES events(id)
+    )
+""")
+
+events_data = [
+    ("circus", datetime.strptime('2024-05-27', '%Y-%m-%d'), 1),
+    ("concert", datetime.strptime('2023-05-27', '%Y-%m-%d'), 2),
+    ("theater", datetime.strptime('2022-05-27', '%Y-%m-%d'), 3)
+]
+
+insert_events(cursor, events_data)
+
+cursor.execute("SELECT * FROM events WHERE name=?", ("circus",))
+event = cursor.fetchone()
+print("Circus event:", event)
+
+new_date = '2024-05-26'
+cursor.execute("UPDATE events SET date=? WHERE name=?", (new_date, "theater"))
+
+event_id = 1
+tickets_data = [100.0, 150.0, 200.0]
+insert_tickets(cursor, event_id, tickets_data)
+
+venues_data = [
+    ('Theater', 'sovetskaya', 1300),
+    ('Concert Hall', 'Lenina', 1500),
+    ('Stadium', 'oktyabria', 10000)
+]
+insert_venues(cursor, venues_data)
+
+connection.commit()
+connection.close()
